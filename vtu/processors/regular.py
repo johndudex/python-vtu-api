@@ -1,7 +1,7 @@
 from vtu.processors.generic import GenericVtuResultsProcessor
 import re
 from bs4 import BeautifulSoup
-
+import requests
 
 class RegularResultProcessor(GenericVtuResultsProcessor):
     """
@@ -65,4 +65,36 @@ class RegularResultProcessor(GenericVtuResultsProcessor):
             result['total'] = totalmarks
             return result
         except IndexError:
-            return 
+            return
+    @staticmethod
+    def fetch_cbcs_results(usn,sem,results_type='regular'):
+                    marks_list=[]
+                    result= {}
+                    site="http://result.vtu.ac.in/cbcs_results2016.aspx?usn="+usn+"&sem="+str(sem)
+                    req=requests.post(site)
+                    soup=BeautifulSoup(req.text,'lxml')
+                    input=soup.findAll("input")
+                    try:
+                        for k in range(len(input)):
+                            if input[k]['value'].upper().strip()==usn.upper().strip():
+                                name_at=k
+                                name=input[k-1]['value'].upper().strip()
+                        k=3
+                        while (k < name_at-4):
+                            #pdb.set_trace()
+                            subject=input[k+0]['value'].upper().strip().replace(',','')
+                            code= input[k+1]['value'].upper().strip()
+                            credits=input[k+2]['value'].upper().strip()
+                            credits_earned=input[k+3]['value'].upper().strip()
+                            grade_letter=input[k+4]['value'].upper().strip()
+                            grade_points=input[k+5]['value'].upper().strip()
+                            credits_points=input[k+6]['value'].upper().strip()
+                            remarks=input[k+7]['value'].upper().strip()
+                            marks=[subject,code,credits,credits_earned,grade_letter,grade_points,credits_points,remarks]
+                            marks_list.append(marks)
+                            k+=8
+                    except KeyError:
+                        return None
+                    result['name']=name
+                    result['marksheet']=marks_list
+                    return result
